@@ -15,7 +15,8 @@
   },
   "scripts": {
     "es1": "nodemon primoServer.js",
-    "rotte": "nodemon rotte.js"
+    "rotte": "nodemon rotte.js",
+    "apiRest": "nodemon api-rest.js"
   },
   "keywords": [],
   "author": "",

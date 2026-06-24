@@ -4,7 +4,7 @@ const app = express();
 app.use(express.json());
 
 //array di libri dichiarato fuori da qualsiasi rotta e quindi esistente per tutta la durata della vita del server. Tutte le rotte possono accedervi
-const libri = [
+let libri = [
   {id: 1, titolo: 'Il cacciatore di aquiloni', autore: 'Khaled Hosseini', anno: 2003},
   {id: 2, titolo: 'La strada', autore: 'Cormac McCarthy', anno: 2006},
   {id: 3, titolo: 'Le correzioni', autore: 'Jonathan Franzen', anno: 2001},
@@ -17,6 +17,8 @@ const libri = [
   {id: 10, titolo: 'Dove canta il gambero', autore: 'Delia Owens', anno: 2018},
   {id: 11, titolo: 'Dove canta la stella marina', autore: 'Delia Owens', anno: 2019}
 ];
+
+let prossimoId = libri.length + 1;
 
 //ROTTE
 app.get('/', (req, res) => {
@@ -56,6 +58,53 @@ app.get('/libri/:id/autore', (req, res) => {
     return res.status(404).json({errore: `Libro (id: ${req.params.id}) non trovato`});
   }
   res.json({autore: libro.autore});
+});
+
+//POST /libri - aggiunge un nuovo libro
+app.post('/libri', (req, res) => {
+  const {titolo, autore, anno} = req.body;
+
+  //verifico che titolo autore e anno siano tutti valorizzati
+  if (!titolo || !autore || !anno) {
+    res.status(400).json({errore: 'Titolo, autore e anno sono obbligatori'});
+  }
+  const nuovoLibro = {
+    id: prossimoId++,
+    titolo: titolo,
+    autore: autore,
+    anno: +anno
+  };
+  libri.push(nuovoLibro);
+  console.log(libri);
+  res.status(201).json(nuovoLibro); //codice 201= created
+});
+
+//PUT /libri/:id modifica un libro esistente in tutte le sue proprieta
+app.put('/libri/:id', (req, res) => {
+  const id = +req.params.id;
+  const indice = libri.findIndex(libro => libro.id == id);
+  if (indice == -1) {
+    res.status(404).json({errore: `Libro (id: ${id}) non trovato. Impossibile aggiornare`});
+  }
+  const {titolo, autore, anno} = req.body;
+  if (!titolo || !autore || !anno) {
+    res.status(400).json({errore: 'Titolo, autore e anno sono obbligatori'});
+  }
+  libri[indice] = {
+    id: id,
+    titolo: titolo,
+    autore: autore,
+    anno: +anno
+  };
+  res.status(200).json(libri[indice]);
+});
+
+//DELETE (/libri/:id) -cancella il libro dato l'id
+app.delete('/libri/:id', (req, res) => {
+  const indice = libri.findIndex(libro => libro.id == id);
+  if (indice == -1) {
+    res.status(404).json({errore: `Libro (id: ${id}) non trovato. Impossibile eliminare`});
+  }
 });
 
 //AVVIO DEL SERVER
