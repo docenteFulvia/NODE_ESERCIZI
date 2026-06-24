@@ -1,6 +1,42 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
+
+//MIDDLEWARE 1 - LOGGING
+app.use((req, res, next) => {
+  const adesso = new Date().toLocaleString('it-IT');
+  console.log(`[${adesso}] ${req.method} ${req.url}`);
+  next();
+});
+
+//MIDDLEWARE 2 - VERIFICARE API KEY
+function verificaChiaveApi(req, res, next) {
+  const chiave = req.headers['x-api-key'];
+  if (!chiave) {
+    res.status(401).json({errore: 'Chiave API mancante'});
+  }
+  if (chiave !== process.env.API_KEY) {
+    res.status(401).json({errore: 'Chiave API non valida'});
+  }
+  next();
+}
+
+//MIDDLEWARE 3 - validazione campi body
+function validaBody(req, res, next) {
+  const {titolo, autore, anno} = req.body;
+
+  //verifico che titolo autore e anno siano tutti valorizzati
+  if (!titolo?.trim() || !autore?.trim() || !anno) {
+    res.status(400).json({errore: 'Titolo, autore e anno sono obbligatori'});
+  }
+
+  if (isNaN(parseInt(anno))) {
+    res.status(400).json({errore: 'Anno deve essere un numero'});
+  }
+
+  next();
+}
+
 app.use(express.json());
 
 //array di libri dichiarato fuori da qualsiasi rotta e quindi esistente per tutta la durata della vita del server. Tutte le rotte possono accedervi
@@ -61,17 +97,13 @@ app.get('/libri/:id/autore', (req, res) => {
 });
 
 //POST /libri - aggiunge un nuovo libro
-app.post('/libri', (req, res) => {
+app.post('/libri', verificaChiaveApi, validaBody, (req, res) => {
   const {titolo, autore, anno} = req.body;
 
-  //verifico che titolo autore e anno siano tutti valorizzati
-  if (!titolo || !autore || !anno) {
-    res.status(400).json({errore: 'Titolo, autore e anno sono obbligatori'});
-  }
   const nuovoLibro = {
     id: prossimoId++,
-    titolo: titolo,
-    autore: autore,
+    titolo: titolo.trim(),
+    autore: autore.trim(),
     anno: +anno
   };
   libri.push(nuovoLibro);
@@ -80,20 +112,18 @@ app.post('/libri', (req, res) => {
 });
 
 //PUT /libri/:id modifica un libro esistente in tutte le sue proprieta
-app.put('/libri/:id', (req, res) => {
+app.put('/libri/:id', verificaChiaveApi, validaBody, (req, res) => {
   const id = +req.params.id;
   const indice = libri.findIndex(libro => libro.id == id);
   if (indice == -1) {
     res.status(404).json({errore: `Libro (id: ${id}) non trovato. Impossibile aggiornare`});
   }
   const {titolo, autore, anno} = req.body;
-  if (!titolo || !autore || !anno) {
-    res.status(400).json({errore: 'Titolo, autore e anno sono obbligatori'});
-  }
+
   libri[indice] = {
     id: id,
-    titolo: titolo,
-    autore: autore,
+    titolo: titolo.trim(),
+    autore: autore.trim(),
     anno: +anno
   };
   console.log(libri);
@@ -101,7 +131,7 @@ app.put('/libri/:id', (req, res) => {
 });
 
 //PATCH /libri/:id modifica un libro esistente in base alle proprietà passate
-app.patch('/libri/:id', function (req, res) {
+app.patch('/libri/:id', verificaChiaveApi, function (req, res) {
   // Riceve l'id del libro da modificare nell'URL.
   const id = +req.params.id;
   const indice = libri.findIndex(function (libro) {
@@ -124,7 +154,7 @@ app.patch('/libri/:id', function (req, res) {
 });
 
 //DELETE (/libri/:id) -cancella il libro dato l'id
-app.delete('/libri/:id', (req, res) => {
+app.delete('/libri/:id', verificaChiaveApi, (req, res) => {
   const id = req.params.id;
   const indice = libri.findIndex(libro => libro.id == id);
   if (indice == -1) {
