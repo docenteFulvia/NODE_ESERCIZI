@@ -46,4 +46,28 @@ function getAutoreById(req, res) {
   res.json({autore: libro.autore});
 }
 
-module.exports = {getLibri, getLibriById, getAutoreById};
+function aggiungiLibro(req, res) {
+  if (!req.body) {
+    res.status(400).json({errore: 'Body non valorizzato'});
+  }
+  const {titolo, autore, anno} = req.body;
+
+  if (!titolo?.trim() || !autore?.trim() || !anno) {
+    res.status(400).json({errore: 'Titolo, autore e anno sono obbligatori'});
+  }
+
+  if (isNaN(parseInt(anno))) {
+    res.status(400).json({errore: 'anno deve essere un numero'});
+  }
+  const nuovoLibro = {
+    id: prossimoId++,
+    titolo: titolo,
+    autore: autore,
+    anno: parseInt(anno)
+  };
+  libri.push(nuovoLibro);
+  console.log(libri);
+  res.status(201).json('Libro aggiunto con successo');
+}
+
+module.exports = {getLibri, getLibriById, getAutoreById, aggiungiLibro};
